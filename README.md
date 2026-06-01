@@ -20,6 +20,19 @@ MODEL_NAME="gpt-5.4-nano"
 # default is https://api.openai.com/v1/chat/completions, or https://api.deepseek.com/v1/chat/completions
 # OPENAI_ENDPOINT="api endpoint"
 ```
+
+## Using OpenRouter
+
+OpenRouter is OpenAI-compatible, so it works by pointing the same variables at it:
+```
+OPENAI_ENDPOINT="https://openrouter.ai/api/v1/chat/completions"
+OPENAI_API_KEY="sk-or-v1-..."
+# Model slugs use provider/model form, e.g.:
+MODEL_NAME="anthropic/claude-haiku-4.5"
+# "Latest" aliases need a leading ~ and MUST be single-quoted in zsh:
+# MODEL_NAME='~anthropic/claude-haiku-latest'
+```
+## Add plugin to zsh
 ```
 plugins=(git chat-zsh) # append chat-zsh to plugins
 ```

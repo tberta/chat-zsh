@@ -17,15 +17,33 @@ function generate_command_response() {
     --arg sys "$sys_prompt" \
     '{model:$model,messages:[{role:"system",content:$sys},{role:"user",content:"Install Node.js on Mac"},{role:"assistant",content:"brew install node"},{role:"user",content:"Delete all files or folders"},{role:"assistant",content:"DANGEROUS rm -rf *"},{role:"user",content:$desc}],temperature:0,stream:false}')
 
-  # Send the request to the API
-  local response
-  response=$(curl -s "$endpoint" \
+  # Send the request to the API (capture body + HTTP status)
+  local response http_code
+  response=$(curl -s -w '\n%{http_code}' "$endpoint" \
     --header "Authorization: Bearer $api_key" \
     --header "Content-Type: application/json" \
     --data "$payload")
+  http_code=${response##*$'\n'}
+  response=${response%$'\n'*}
 
-  # Extract content; suppress jq errors and handle null/missing fields gracefully
+  # Surface transport/auth/model errors instead of failing silently
+  if [[ -z $response ]]; then
+    print -u2 "chat-zsh: no response from $endpoint (network error?)"
+    return 1
+  fi
+  local api_err
+  api_err=$(printf '%s' "$response" | jq -r '.error.message // empty' 2>/dev/null)
+  if [[ -n $api_err ]]; then
+    print -u2 "chat-zsh: API error (HTTP $http_code): $api_err"
+    return 1
+  fi
+
+  # Extract content; handle null/missing fields gracefully
   content=$(printf '%s' "$response" | jq -r '.choices[0].message.content // empty' 2>/dev/null | sed '/^```/d')
+  if [[ -z $content ]]; then
+    print -u2 "chat-zsh: empty completion (HTTP $http_code). Raw response: $response"
+    return 1
+  fi
 
   # Return the content
   echo "$content"
